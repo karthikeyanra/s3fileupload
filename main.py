@@ -6,6 +6,7 @@ import os
 app=Flask(__name__)
 app.secret_key = "my secret key"
 cwd=os.getcwd()
+myS3Client=boto3.client(service_name="s3")
 
 #create a folder TEMPDIR to save the file temporary before upload to s3
 if not os.path.isdir('TEMPDIR'):
@@ -16,7 +17,6 @@ AllowedFileType=['pdf','txt','doc','docx']
 @app.route('/')
 def main():
     list_of_buckets=[]
-    myS3Client=boto3.client(service_name="s3")
     response = myS3Client.list_buckets()
     for buckets in response['Buckets']:
         list_of_buckets.append(buckets['Name'])
@@ -24,9 +24,9 @@ def main():
 
 @app.route('/upload', methods=['POST'])
 def fileupload():
+
     file = request.files['file']
     bucketname=request.form.get('bucketname')
- 
     filename = secure_filename(file.filename)
 
     fextension=filename.split(".")
@@ -44,10 +44,9 @@ def fileupload():
     filepath=cwd+"\\TEMPDIR\\"+filename
     file.save(filepath)
     #begin upload to S3
-    myS3Client=boto3.client(service_name="s3")
     myS3Client.upload_file(filepath,bucketname,filename)
     flash("File Upload Succesful")
-    #remote temp file
+    #remove temp file
     os.remove(filepath)
     return redirect("/")
 
